@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan - Material Management System</title>
+    <link rel="stylesheet" href="/Project_PI_Konstruksi/material-management-system/assets/css/main.css">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">Material Management System</div>
+        </div>
+        
+        <nav>
+            <div class="container">
+                <ul>
+                    <li><a href="/Project_PI_Konstruksi/material-management-system/pages/dashboard.html">Dashboard</a></li>
+                    <li><a href="/Project_PI_Konstruksi/material-management-system/pages/materials.html">Material</a></li>
+                    <li><a href="/Project_PI_Konstruksi/material-management-system/pages/laporan.html" class="active">Laporan</a></li>
+                    <li><a href="#" id="logout-btn">Logout</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+    
+    <main class="container">
+        <h1>Laporan</h1>
+        
+        <div class="alert-container"></div>
+        
+        <div class="card">
+            <div class="card-header">Laporan Stok Material</div>
+            <div class="card-body">
+                <div class="report-filters">
+                    <div class="form-group">
+                        <button class="btn btn-primary" onclick="generateInventoryReport()">Tampilkan Laporan Stok</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">Laporan Transaksi Material</div>
+            <div class="card-body">
+                <div class="report-filters">
+                    <div class="form-group">
+                        <label for="start-date">Tanggal Mulai</label>
+                        <input type="date" id="start-date" name="start-date">
+                    </div>
+                    <div class="form-group">
+                        <label for="end-date">Tanggal Selesai</label>
+                        <input type="date" id="end-date" name="end-date">
+                    </div>
+                    <div class="form-group">
+                        <button class="btn btn-primary" onclick="generateTransactionReport()">Tampilkan Laporan Transaksi</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="report-container" class="card" style="display: none;">
+            <div class="card-header">Hasil Laporan <button class="btn btn-sm btn-primary" onclick="printReport()" style="float: right;">Cetak</button></div>
+            <div class="card-body">
+                <div id="report-content"></div>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Material Management System</p>
+        </div>
+    </footer>
+    
+    <script src="/Project_PI_Konstruksi/material-management-system/assets/js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // Check authentication
+                const response = await fetch('/Project_PI_Konstruksi/material-management-system/backend/auth/check_session.php');
+                const data = await response.json();
+                
+                if (data.status !== 'success') {
+                    window.location.href = '/Project_PI_Konstruksi/material-management-system/login.html';
+                    return;
+                }
+                
+                // Set default date values
+                const today = new Date();
+                const lastMonth = new Date();
+                lastMonth.setMonth(today.getMonth() - 1);
+                
+                document.getElementById('start-date').valueAsDate = lastMonth;
+                document.getElementById('end-date').valueAsDate = today;
+                
+            } catch (error) {
+                console.error('Authentication check failed:', error);
+                window.location.href = '/Project_PI_Konstruksi/material-management-system/login.html';
+            }
+            
+            // Setup logout button
+            document.getElementById('logout-btn').addEventListener('click', async function(e) {
+                e.preventDefault();
+                try {
+                    const response = await fetch('/Project_PI_Konstruksi/material-management-system/backend/auth/logout.php');
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        window.location.href = '/Project_PI_Konstruksi/material-management-system/login.html';
+                    } else {
+                        showAlert('Logout failed. Please try again.', 'danger');
+                    }
+                } catch (error) {
+                    console.error('Logout error:', error);
+                    showAlert('An error occurred during logout. Please try again.', 'danger');
+                }
+            });
+        });
+        
+        async function generateInventoryReport() {
+            try {
+                showLoader();
+                
+                const response = await fetch('/Project_PI_Konstruksi/material-management-system/backend/api/inventory_report.php');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    displayInventoryReport(data.data);
+                } else {
+                    showAlert(data.message || 'Failed to generate report', 'danger');
+                }
+                
+                hideLoader();
+            } catch (error) {
+                console.error('Error generating report:', error);
+                showAlert('Failed to generate report. Please try again.', 'danger');
+                hideLoader();
+            }
+        }
+        
+        async function generateTransactionReport() {
+            try {
+                const startDate = document.getElementById('start-date').value;
+                const endDate = document.getElementById('end-date').value;
+                
+                if (!startDate || !endDate) {
+                    showAlert('Please select start and end dates', 'warning');
+                    return;
+                }
+                
+                showLoader();
+                
+                const response = await fetch(`/Project_PI_Konstruksi/material-management-system/backend/api/transaction_report.php?start_date=${startDate}&end_date=${endDate}`);
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    displayTransactionReport(data.data, startDate, endDate);
+                } else {
+                    showAlert(data.message || 'Failed to generate report', 'danger');
+                }
+                
+                hideLoader();
+            } catch (error) {
+                console.error('Error generating report:', error);
+                showAlert('Failed to generate report. Please try again.', 'danger');
+                hideLoader();
+            }
+        }
+        
+        function displayInventoryReport(materials) {
+            const reportContainer = document.getElementById('report-container');
+            const reportContent = document.getElementById('report-content');
+            
+            let tableRows = '';
+            
+            materials.forEach(material => {
+                const stockStatus = getStockStatus(material.quantity, material.min_stock_level);
+                
+                tableRows += `
+                    <tr>
+                        <td>${material.material_name}</td>
+                        <td>${material.category_name || 'Tidak Terkategori'}</td>
+                        <td>${formatNumber(material.quantity)} ${material.unit}</td>
+                        <td>${formatNumber(material.min_stock_level)} ${material.unit}</td>
+                        <td><span class="status ${stockStatus.class}">${stockStatus.label}</span></td>
+                    </tr>
+                `;
+            });
+            
+            reportContent.innerHTML = `
+                <h2>Laporan Stok Material</h2>
+                <p>Tanggal Laporan: ${new Date().toLocaleDateString()}</p>
+                
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Nama Material</th>
+                            <th>Kategori</th>
+                            <th>Stok Saat Ini</th>
+                            <th>Batas Minimum</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows}
+                    </tbody>
+                </table>
+            `;
+            
+            reportContainer.style.display = 'block';
+        }
+        
+        function displayTransactionReport(transactions, startDate, endDate) {
+            const reportContainer = document.getElementById('report-container');
+            const reportContent = document.getElementById('report-content');
+            
+            let tableRows = '';
+            
+            transactions.forEach(transaction => {
+                tableRows += `
+                    <tr>
+                        <td>${formatDate(transaction.transaction_date)}</td>
+                        <td>${transaction.material_name}</td>
+                        <td>${transaction.transaction_type === 'in' ? 'Masuk' : 'Keluar'}</td>
+                        <td>${formatNumber(transaction.quantity)} ${transaction.unit}</td>
+                        <td>${transaction.transaction_type === 'in' ? (transaction.supplier_name || '-') : (transaction.project_name || '-')}</td>
+                        <td>${transaction.notes || '-'}</td>
+                    </tr>
+                `;
+            });
+            
+            reportContent.innerHTML = `
+                <h2>Laporan Transaksi Material</h2>
+                <p>Periode: ${formatDateSimple(startDate)} - ${formatDateSimple(endDate)}</p>
+                <p>Tanggal Laporan: ${new Date().toLocaleDateString()}</p>
+                
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Material</th>
+                            <th>Tipe</th>
+                            <th>Jumlah</th>
+                            <th>Proyek/Supplier</th>
+                            <th>Catatan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tableRows}
+                    </tbody>
+                </table>
+            `;
+            
+            reportContainer.style.display = 'block';
+        }
+        
+        function getStockStatus(quantity, minLevel) {
+            if (quantity <= 0) {
+                return { label: 'Habis', class: 'status-danger' };
+            } else if (quantity <= minLevel) {
+                return { label: 'Hampir Habis', class: 'status-warning' };
+            } else {
+                return { label: 'Tersedia', class: 'status-success' };
+            }
+        }
+        
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        function formatDateSimple(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString();
+        }
+        
+        function formatNumber(number) {
+            return parseFloat(number).toLocaleString(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2
+            });
+        }
+        
+        function showLoader() {
+            const loader = document.createElement('div');
+            loader.className = 'loader-container';
+            loader.innerHTML = '<div class="loader"></div>';
+            document.body.appendChild(loader);
+        }
+        
+        function hideLoader() {
+            const loader = document.querySelector('.loader-container');
+            if (loader) {
+                loader.remove();
+            }
+        }
+        
+        function showAlert(message, type) {
+            const alertContainer = document.querySelector('.alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            
+            alertContainer.appendChild(alert);
+            
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+        
+        function printReport() {
+            window.print();
+        }
+    </script>
+    
+    <style>
+        @media print {
+            header, nav, footer, .card-header button, .report-filters {
+                display: none !important;
+            }
+            .card {
+                border: none !important;
+                box-shadow: none !important;
+            }
+            .card-header {
+                background-color: #333 !important;
+                color: #000 !important;
+                border-bottom: 1px solid #000 !important;
+            }
+            body {
+                font-family: Arial, sans-serif !important;
+            }
+        }
+        
+        .report-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        
+        .report-table th, .report-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        
+        .report-table th {
+            background-color: #f2f2f2;
+        }
+        
+        .report-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+    </style>
+</body>
+</html>

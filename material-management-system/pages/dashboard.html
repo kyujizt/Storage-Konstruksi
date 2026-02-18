@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Material Management System</title>
+    <link rel="stylesheet" href="/Project_PI_Konstruksi/material-management-system/assets/css/main.css">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">Material Management System</div>
+        </div>
+        
+        <nav>
+            <div class="container">
+                <ul>
+                    <li><a href="/Project_PI_Konstruksi/material-management-system/pages/dashboard.html" class="active">Dashboard</a></li>
+                    <li><a href="/Project_PI_Konstruksi/material-management-system/pages/materials.html">Material</a></li>
+                    <li><a href="/Project_PI_Konstruksi/material-management-system/pages/laporan.html">Laporan</a></li>
+                    <li><a href="#" id="logout-btn">Logout</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+    
+    <main class="container">
+        <h1>Dashboard</h1>
+        
+        <div class="alert-container"></div>
+        
+        <div id="dashboard-stats" class="stats">
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-boxes"></i></div>
+                <div class="stat-title">Total Materials</div>
+                <div class="stat-value" id="total-materials">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="stat-title">Low Stock Items</div>
+                <div class="stat-value" id="low-stock">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-ban"></i></div>
+                <div class="stat-title">Out of Stock</div>
+                <div class="stat-value" id="out-of-stock">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+                <div class="stat-title">Total Inventory Value</div>
+                <div class="stat-value" id="total-value">--</div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="card">
+                <div class="card-header">Recent Material Transactions</div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Material</th>
+                                    <th>Type</th>
+                                    <th>Quantity</th>
+                                    <th>Project/Supplier</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recent-transactions">
+                                <tr>
+                                    <td colspan="5" class="text-center">Loading transactions...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <div class="card">
+                <div class="card-header">Low Stock Materials</div>
+                <div class="card-body">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Material</th>
+                                    <th>Category</th>
+                                    <th>Current Stock</th>
+                                    <th>Minimum Level</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="low-stock-materials">
+                                <tr>
+                                    <td colspan="6" class="text-center">Loading materials...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Material Management System</p>
+        </div>
+    </footer>
+    
+    <script src="/Project_PI_Konstruksi/material-management-system/assets/js/main.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // Check authentication
+                const response = await fetch('/Project_PI_Konstruksi/material-management-system/backend/auth/check_session.php');
+                const data = await response.json();
+                
+                if (data.status !== 'success') {
+                    window.location.href = '../login.html';
+                    return;
+                }
+                
+                // Initialize dashboard
+                loadDashboardData();
+                
+            } catch (error) {
+                console.error('Authentication check failed:', error);
+                window.location.href = '../login.html';
+            }
+            
+            // Setup logout button
+            document.getElementById('logout-btn').addEventListener('click', async function(e) {
+                e.preventDefault();
+                try {
+                    const response = await fetch('/Project_PI_Konstruksi/material-management-system/backend/auth/logout.php');
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        window.location.href = '../login.html';
+                    } else {
+                        app.showAlert('Logout failed. Please try again.', 'danger');
+                    }
+                } catch (error) {
+                    console.error('Logout error:', error);
+                    app.showAlert('An error occurred during logout. Please try again.', 'danger');
+                }
+            });
+        });
+        
+        async function loadDashboardData() {
+            try {
+                // Load dashboard stats
+                const statsResponse = await fetch('/Project_PI_Konstruksi/material-management-system/backend/api/dashboard_stats.php');
+                const statsData = await statsResponse.json();
+                
+                if (statsData.status === 'success') {
+                    document.getElementById('total-materials').textContent = statsData.data.total_materials;
+                    document.getElementById('low-stock').textContent = statsData.data.low_stock;
+                    document.getElementById('out-of-stock').textContent = statsData.data.out_of_stock;
+                    document.getElementById('total-value').textContent = formatNumber(statsData.data.total_value) + ' IDR';
+                }
+                
+                // Load recent transactions
+                const transactionsResponse = await fetch('/Project_PI_Konstruksi/material-management-system/backend/api/recent_transactions.php');
+                const transactionsData = await transactionsResponse.json();
+                
+                if (transactionsData.status === 'success') {
+                    renderRecentTransactions(transactionsData.data);
+                }
+                
+                // Load low stock materials
+                const lowStockResponse = await fetch('/Project_PI_Konstruksi/material-management-system/backend/api/low_stock_materials.php');
+                const lowStockData = await lowStockResponse.json();
+                
+                if (lowStockData.status === 'success') {
+                    renderLowStockMaterials(lowStockData.data);
+                }
+                
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                app.showAlert('Failed to load dashboard data. Please refresh the page.', 'danger');
+            }
+        }
+        
+        function renderRecentTransactions(transactions) {
+            const tbody = document.getElementById('recent-transactions');
+            
+            if (transactions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">No recent transactions</td></tr>';
+                return;
+            }
+            
+            let rows = '';
+            transactions.forEach(transaction => {
+                rows += `
+                    <tr>
+                        <td>${formatDate(transaction.transaction_date)}</td>
+                        <td>${transaction.material_name}</td>
+                        <td>${transaction.transaction_type === 'in' ? 'Stock In' : 'Stock Out'}</td>
+                        <td>${formatNumber(transaction.quantity)} ${transaction.unit}</td>
+                        <td>${transaction.transaction_type === 'in' ? (transaction.supplier_name || '-') : (transaction.project_name || '-')}</td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = rows;
+        }
+        
+        function renderLowStockMaterials(materials) {
+            const tbody = document.getElementById('low-stock-materials');
+            
+            if (materials.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center">No low stock materials</td></tr>';
+                return;
+            }
+            
+            let rows = '';
+            materials.forEach(material => {
+                const status = getStockStatusLabel(material.quantity, material.min_stock_level);
+                
+                rows += `
+                    <tr>
+                        <td>${material.material_name}</td>
+                        <td>${material.category_name || 'Uncategorized'}</td>
+                        <td>${formatNumber(material.quantity)} ${material.unit}</td>
+                        <td>${formatNumber(material.min_stock_level)} ${material.unit}</td>
+                        <td><span class="status ${status.class}">${status.label}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-success" onclick="stockInRedirect(${material.material_id})">Stock In</button>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            tbody.innerHTML = rows;
+        }
+        
+        function getStockStatusLabel(quantity, minLevel) {
+            if (quantity <= 0) {
+                return { label: 'Out of Stock', class: 'status-danger' };
+            } else if (quantity <= minLevel) {
+                return { label: 'Low Stock', class: 'status-warning' };
+            } else {
+                return { label: 'In Stock', class: 'status-success' };
+            }
+        }
+        
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        function formatNumber(number) {
+            return parseFloat(number).toLocaleString(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2
+            });
+        }
+        
+        function stockInRedirect(materialId) {
+            window.location.href = `inventory.html?action=stockin&id=${materialId}`;
+        }
+    </script>
+</body>
+</html>

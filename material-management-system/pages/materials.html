@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Materials - Material Management System</title>
+    <link rel="stylesheet" href="/Project_PI_Konstruksi/material-management-system/assets/css/main.css">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">Material Management System</div>
+        </div>
+        
+        <nav>
+            <div class="container">
+                <ul>
+                    <li><a href="/Project_PI_Konstruksi/material-management-system/pages/dashboard.html">Dashboard</a></li>
+                    <li><a href="/Project_PI_Konstruksi/material-management-system/pages/materials.html" class="active">Material</a></li>
+                    <li><a href="/Project_PI_Konstruksi/material-management-system/pages/laporan.html">Laporan</a></li>
+                    <li><a href="#" id="logout-btn">Logout</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
+    
+    <main class="container">
+        <h1>Materials Management</h1>
+        
+        <div class="alert-container"></div>
+        
+        <div class="card">
+            <div class="card-header">Materials List</div>
+            <div class="card-body">
+                <div class="filters">
+                    <div class="row">
+                        <div class="col">
+                            <form id="search-form" class="search-form">
+                                <input type="text" id="search-input" placeholder="Search materials...">
+                                <button type="submit" class="btn btn-primary">Search</button>
+                            </form>
+                        </div>
+                        <div class="col">
+                            <select id="category-filter">
+                                <option value="0">All Categories</option>
+                                <!-- Categories will be loaded dynamically -->
+                            </select>
+                        </div>
+                        <div class="col">
+                            <button id="add-material-btn" class="btn btn-success">Add New Material</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Material Name</th>
+                                <th>Category</th>
+                                <th>Unit</th>
+                                <th>Current Stock</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="materials-table-body">
+                            <tr>
+                                <td colspan="6" class="text-center">Loading materials...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div id="pagination" class="pagination">
+                    <!-- Pagination controls will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 Material Management System</p>
+        </div>
+    </footer>
+    
+    <script src="/Project_PI_Konstruksi/material-management-system/assets/js/main.js"></script>
+    <script src="/Project_PI_Konstruksi/material-management-system/assets/js/material.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                // Check authentication
+                const response = await fetch('/Project_PI_Konstruksi/material-management-system/backend/auth/check_session.php');
+                const data = await response.json();
+                
+                if (data.status !== 'success') {
+                    window.location.href = '../login.html';
+                    return;
+                }
+                
+                // Initialize materials page
+                initializeMaterialsPage();
+                
+            } catch (error) {
+                console.error('Authentication check failed:', error);
+                window.location.href = '../login.html';
+            }
+        });
+    </script>
+</body>
+</html>

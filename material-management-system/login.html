@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Material Management System</title>
+    <link rel="stylesheet" href="assets/css/main.css">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-form">
+            <h2 class="login-title">Material Management System</h2>
+            <form id="login-form" method="post">
+                <div class="alert-container"></div>
+                
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required autofocus>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Login</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('login-form');
+            const alertContainer = document.querySelector('.alert-container');
+            
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                if (!username || !password) {
+                    showAlert('Please enter both username and password', 'danger');
+                    return;
+                }
+                
+                try {
+                    // Show loading indicator
+                    const submitBtn = loginForm.querySelector('button[type="submit"]');
+                    const originalBtnText = submitBtn.textContent;
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Logging in...';
+                    
+                    // Create form data
+                    const formData = new FormData();
+                    formData.append('username', username);
+                    formData.append('password', password);
+                    
+                    // Send login request
+                    const response = await fetch('backend/auth/login.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.status === 'success') {
+                        showAlert('Login successful. Redirecting...', 'success');
+                        window.location.href = data.redirect || 'pages/dashboard.html';
+                    } else {
+                        showAlert(data.message || 'Login failed. Please try again.', 'danger');
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalBtnText;
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    showAlert('An error occurred during login. Please try again.', 'danger');
+                    
+                    const submitBtn = loginForm.querySelector('button[type="submit"]');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Login';
+                }
+            });
+            
+            function showAlert(message, type) {
+                alertContainer.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+                
+                // Clear alert after 5 seconds for success messages
+                if (type === 'success') {
+                    setTimeout(() => {
+                        alertContainer.innerHTML = '';
+                    }, 5000);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
